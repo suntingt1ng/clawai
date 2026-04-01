@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 360px; padding: 16px; font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; }
+    h3 { margin: 0 0 12px 0; font-size: 16px; }
+    .section { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .section-title { font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 600; }
+    
+    /* 模式选择 */
+    .mode-select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    
+    /* 表单 */
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .form-group input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+    
+    /* Prompt 列表 */
+    .prompt-list { max-height: 200px; overflow-y: auto; }
+    .prompt-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; }
+    .prompt-item:last-child { border-bottom: none; }
+    .prompt-name { font-size: 13px; }
+    .prompt-actions { display: flex; gap: 6px; }
+    .prompt-btn { padding: 4px 8px; font-size: 11px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-edit { background: #e3f2fd; color: #1976d2; }
+    .btn-del { background: #ffebee; color: #d32f2f; }
+    .btn-del:disabled { background: #eee; color: #999; cursor: not-allowed; }
+    
+    /* 添加按钮 */
+    .add-btn { width: 100%; padding: 10px; background: #fff; border: 1px dashed #bbb; border-radius: 6px; cursor: pointer; color: #666; font-size: 13px; }
+    .add-btn:hover { background: #fafafa; border-color: #999; }
+    
+    /* 弹窗 */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; }
+    .modal.show { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: #fff; border-radius: 12px; padding: 20px; width: 300px; }
+    .modal h4 { margin: 0 0 12px 0; font-size: 15px; }
+    .modal label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .modal input, .modal textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; margin-bottom: 10px; }
+    .modal textarea { height: 100px; resize: vertical; }
+    .modal-btns { display: flex; gap: 8px; }
+    .modal-btns button { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-cancel { background: #eee; color: #333; }
+    .btn-save { background: #4CAF50; color: #fff; }
+    
+    /* 保存按钮 */
+    .save-bar { position: sticky; bottom: 0; background: #fff; padding: 12px 0 0; margin: 0 -16px -16px; border-top: 1px solid #eee; }
+    #saveBtn { width: calc(100% - 32px); margin: 0 16px 16px; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    #saveBtn:hover { background: #45a049; }
+    
+    .tips { font-size: 11px; color: #888; margin-top: 8px; text-align: center; }
+    
+    /* 备份按钮 */
+    .backup-btns { display: flex; gap: 8px; }
+    .backup-btn { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
+    .backup-btn:hover { background: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <h3>⚙️ ClawAI 设置</h3>
+  
+  <div class="section">
+    <div class="section-title">📝 Prompt 管理</div>
+    <div class="prompt-list" id="promptList"></div>
+    <button class="add-btn" id="addPromptBtn">+ 添加新 Prompt</button>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">🎯 当前使用</div>
+    <select class="mode-select" id="mode"></select>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">🔌 API 配置</div>
+    <div class="form-group">
+      <label>模型</label>
+      <input type="text" id="model" placeholder="Qwen/Qwen2.5-7B-Instruct">
+    </div>
+    <div class="form-group">
+      <label>API 地址</label>
+      <input type="text" id="apiUrl" placeholder="https://api.siliconflow.cn/v1/chat/completions">
+    </div>
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">💾 备份管理</div>
+    <div class="backup-btns">
+      <button class="backup-btn" id="exportBtn">📤 导出配置</button>
+      <button class="backup-btn" id="importBtn">📥 导入配置</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;">
+    </div>
+  </div>
+  
+  <div class="save-bar">
+    <button id="saveBtn">保存设置</button>
+  </div>
+
+  <!-- 编辑弹窗 -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h4 id="modalTitle">编辑 Prompt</h4>
+      <label>名称</label>
+      <input type="text" id="promptName" placeholder="如：德语学习">
+      <label>Prompt 内容</label>
+      <textarea id="promptContent" placeholder="请输入 Prompt..."></textarea>
+      <label>加粗关键词（用逗号分隔，{{query}} 代表查询内容）</label>
+      <input type="text" id="promptBoldKeywords" placeholder="Definition:,Beispiele:,{{query}}">
+      <div class="modal-btns">
+        <button class="btn-cancel" id="cancelBtn">取消</button>
+        <button class="btn-save" id="savePromptBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
