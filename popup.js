@@ -269,3 +269,4 @@ function importConfig(event) {
   // 清空 input，允许重复导入同一文件
   event.target.value = '';
 }
+ 
